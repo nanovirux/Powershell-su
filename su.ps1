@@ -4,13 +4,10 @@
 function Switch-User {
     param (
         [string]$username,
-        [string]$domain,
-        [string]$password
+        [string]$domain
     )
 
     $fullUsername = "$domain\$username"
-    $securePassword = ConvertTo-SecureString $password -AsPlainText -Force
-    $credential = New-Object System.Management.Automation.PSCredential($fullUsername, $securePassword)
     
     # Determine the user's home directory
     $userHome = [System.IO.Path]::Combine("C:\Users", $username)
@@ -21,7 +18,9 @@ function Switch-User {
         return
     }
 
-    Start-Process powershell.exe -Credential $credential -ArgumentList '-NoExit' -WorkingDirectory $userHome
+    # Command to start a new PowerShell process as the specified user
+    $command = "runas /user:$fullUsername ""cmd.exe /c cd /d $userHome && start powershell.exe -NoExit"""
+    Invoke-Expression $command
 }
 
 # Main script
@@ -31,9 +30,4 @@ $username = Read-Host
 Write-Host "Enter the domain: "
 $domain = Read-Host
 
-Write-Host "Enter the password for ${username}@${domain}: "
-$password = Read-Host -AsSecureString
-$password = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($password))
-
-Switch-User -username $username -domain $domain -password $password
-
+Switch-User -username $username -domain $domain
